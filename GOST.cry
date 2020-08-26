@@ -7,10 +7,24 @@ gost (k, lr) = x22 # x11
     llrr = map reverse yy
     yy = split`{2} lr
 
+gostInv : ([256],[64]) -> [64]
+gostInv (k, lr) = x22 # x11
+    where
+    x11 = reverse x1
+    x22 = reverse x2
+    [x1, x2] = dec (k, reverse llrr, 32)
+    llrr = map reverse yy
+    yy = split`{2} lr
+
 enc : ([256],[2][32],[6]) -> [2][32]
 enc  (k, [l, r], i) = if i == 1 then round(expandKey k @ (33-i-1), [l, r]) else enc (k, [l', r'], (i-1))
     where
     [l', r'] = round(expandKey k  @ (33-i-1), [l, r])
+
+dec : ([256],[2][32],[6]) -> [2][32]
+dec  (k, [l, r], i) = if i == 1 then roundInv(expandKeyInv k @ (33-i-1), [l, r]) else dec (k, [l', r'], (i-1))
+    where
+    [l', r'] = roundInv(expandKeyInv k  @ (33-i-1), [l, r])
 
 round : ([32],[2][32]) -> [2][32]
 round (k, [l, r]) = [r, rls ^ l]
@@ -28,8 +42,31 @@ round (k, [l, r]) = [r, rls ^ l]
     [asp1, asp2, asp3, asp4, asp5, asp6, asp7, asp8] = split`{8} aadd
     aadd = r + k
 
+roundInv : ([32],[2][32]) -> [2][32]
+roundInv (k, [l, r]) = [rls ^ r, l]
+    where
+    rls = asbxcon <<< 11
+    asbxcon = asbx1 # asbx2 # asbx3 # asbx4 # asbx5 # asbx6 # asbx7 # asbx8
+    asbx1 = Sbox1 asp1
+    asbx2 = Sbox2 asp2
+    asbx3 = Sbox3 asp3
+    asbx4 = Sbox4 asp4
+    asbx5 = Sbox5 asp5
+    asbx6 = Sbox6 asp6
+    asbx7 = Sbox7 asp7
+    asbx8 = Sbox8 asp8
+    [asp1, asp2, asp3, asp4, asp5, asp6, asp7, asp8] = split`{8} aadd
+    aadd = l + k
+
 expandKey : [256] -> [32][32]
 expandKey key = key1 # key1 # key1 # key2
+    where
+    key1 = map reverse key11
+    key11 = split`{8} key
+    key2 = reverse key1
+
+expandKeyInv : [256] -> [32][32]
+expandKeyInv key = key1 # key2 # key2 # key2
     where
     key1 = map reverse key11
     key11 = split`{8} key
@@ -58,3 +95,11 @@ Sbox7 asb7 = [0xD, 0xB, 0x4, 0x1, 0x3, 0xF, 0x5, 0x9, 0x0, 0xA, 0xE, 0x7, 0x6, 0
 
 Sbox8 : [4] -> [4]
 Sbox8 asb8 = [0x1, 0xF, 0xD, 0x0, 0x5, 0x7, 0xA, 0x4, 0x9, 0x2, 0x3, 0xE, 0x6, 0xB, 0x8, 0xC] @ asb8
+
+keytest = 0x4b726970746f6772616669204d65746f646520474f53542c20416e6479736168
+msgtest = 0b0100010101001110010010110101001001001001010100000101001101001001
+property testeda = gostInv(keytest, gost(keytest, msgtest)) == msgtest
+
+skey = 0x0e964ed2
+slr = [0b10010010110010100000101010010010, 0b01001010110100100111001010100010]
+property testedr = roundInv(skey, round(skey, slr)) == slr
