@@ -103,3 +103,16 @@ property testeda = gostInv(keytest, gost(keytest, msgtest)) == msgtest
 skey = 0x0e964ed2
 slr = [0b10010010110010100000101010010010, 0b01001010110100100111001010100010]
 property testedr = roundInv(skey, round(skey, slr)) == slr
+
+testmsg = [0x1dab5737a7f67e65,
+0x9819ff32595e047a,
+0x7a60a770d3a76130,
+0x8a25f49bca7d0468]
+
+vectest = [0x77b7fa410c9ac58a25f49bca7d0468c9296529315eaca76bd1a10f376d1f4294,
+0xa3ebc4daaab78b0be131dab5737a7f67e602670d543521319150d2e14eeec445,
+0xb1c466d37519b82e8319819ff32595e047a28cb6f83eff1c6916a815a637fffa,
+0x471aba57a60a770d3a76130635c1fbea4ef14de51f78b4ae57dd893b62f55208]
+
+property testsPass =  and [ gostInv(vect, gost(vect, msg)) == msg
+                         | vect <- vectest | msg <- testmsg]
